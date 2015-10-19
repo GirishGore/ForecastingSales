@@ -35,5 +35,11 @@ train <- arrange(train, Store, Date)
 test <- arrange(test ,  Store ,Date)
 train.frame <- forecasting.algorithm(train, test , 'auto.arima')
 
-head(train.frame)
 unique(train.frame$Store)
+head(train.frame)
+head(test)
+submission <- merge(test , train.frame , by = c("Store","Date"))
+submission <- submission[,c("Id","Sales")]
+submission <- arrange(submission, Id)
+
+write.csv(submission,"FirstSubmission.csv", row.names = FALSE)
