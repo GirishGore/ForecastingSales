@@ -2,7 +2,7 @@
 
 forecasting.algorithm <- function (train , test , algoname , ...) {
   
-  ALGONAMES <- c('Using.auto.arima');
+  ALGONAMES <- c('Using.auto.arima','Visualizing.TimeSeries.Decomposition');
   
   if(algoname %in% ALGONAMES){
      cat(" This algorithm supported ")
@@ -24,13 +24,12 @@ forecasting.algorithm <- function (train , test , algoname , ...) {
   
   for(currentStore in forecastStores)
   {
-    if (currentStore != 512){
-    
+    if (currentStore < 10){
+    #currentStore <- 512
     cat("Running Forecasting for : ", currentStore , "\n")
     currentData <- filter(train , train$Store == currentStore)
     testData <- filter(test , test$Store == currentStore)
     
-    head(currentData)
     cat("Running for store ", currentStore , " has data with rows ", nrow(currentData))
     horizon <- 48
     cat(" Horizon inferred ",horizon)
@@ -42,6 +41,17 @@ forecasting.algorithm <- function (train , test , algoname , ...) {
   }
   
   myfcst   
+}
+
+Visualizing.TimeSeries.Decomposition <- function(currentData, testData, currentStore ,s)
+{
+    fit <- stl(s, s.window = 365)
+    plot(s, col="gray",
+         main="Electrical equipment manufacturing",
+         ylab="New orders index", xlab="")
+    lines(fit$time.series[,2],col="red",ylab="Trend")
+    plot(fit)
+    NULL
 }
 
 Using.auto.arima <- function(currentData, testData, currentStore , s)

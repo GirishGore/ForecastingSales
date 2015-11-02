@@ -33,7 +33,7 @@ test$SchoolHoliday <- as.factor(test$SchoolHoliday)
 library(dplyr)
 train <- arrange(train, Store, Date)
 test <- arrange(test ,  Store ,Date)
-train.frame <- forecasting.algorithm(train, test , 'Using.auto.arima')
+train.frame <- forecasting.algorithm(train, test , 'Visualizing.TimeSeries.Decomposition')
 
 submission <- merge(test , train.frame , by = c("Store","Date"))
 submission <- submission[,c("Id","Sales")]
