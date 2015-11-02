@@ -33,10 +33,10 @@ test$SchoolHoliday <- as.factor(test$SchoolHoliday)
 library(dplyr)
 train <- arrange(train, Store, Date)
 test <- arrange(test ,  Store ,Date)
-train.frame <- forecasting.algorithm(train, test , 'Visualizing.TimeSeries.Decomposition')
+train.frame <- forecasting.algorithm(train, test , 'Using.furier.series')
 
 submission <- merge(test , train.frame , by = c("Store","Date"))
 submission <- submission[,c("Id","Sales")]
 submission <- arrange(submission, Id)
 
-write.csv(submission,"TestSubmission.csv", row.names = FALSE)
+write.csv(submission,"F1Submission.csv", row.names = FALSE)
