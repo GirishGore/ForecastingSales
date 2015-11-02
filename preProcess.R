@@ -33,13 +33,10 @@ test$SchoolHoliday <- as.factor(test$SchoolHoliday)
 library(dplyr)
 train <- arrange(train, Store, Date)
 test <- arrange(test ,  Store ,Date)
-train.frame <- forecasting.algorithm(train, test , 'auto.arima')
+train.frame <- forecasting.algorithm(train, test , 'Using.auto.arima')
 
-unique(train.frame$Store)
-head(train.frame)
-head(test)
 submission <- merge(test , train.frame , by = c("Store","Date"))
 submission <- submission[,c("Id","Sales")]
 submission <- arrange(submission, Id)
 
-write.csv(submission,"FirstSubmission.csv", row.names = FALSE)
+write.csv(submission,"TestSubmission.csv", row.names = FALSE)
