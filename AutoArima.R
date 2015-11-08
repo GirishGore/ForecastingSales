@@ -112,17 +112,17 @@ Using.Classiscal.Approach <- function(currentData, testData , currentStore ,s)
   
   if(length(salesFcst) < 48)
   {
-  newFcst <- data.frame(Store = rep(currentStore,horizon),
+  
+    newFcst <- data.frame(Store = rep(currentStore,horizon),
                         Date = seq(as.Date("2015-08-01"), as.Date("2015-09-17"), "day"),
-                        Sales = rep(5000,48))
+                        Sales = rep(mean(currentData$Sales),48))
     
   }
   else
   {
     newFcst <- data.frame(Store = rep(currentStore,horizon),
                           Date = seq(as.Date("2015-08-01"), as.Date("2015-09-17"), "day"),
-                          Sales = salesFcst$Sales)
-    
+                          Sales = rep(mean(salesFcst$Sales),horizon))
   }
   newFcst
 }

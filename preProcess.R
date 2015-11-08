@@ -39,4 +39,4 @@ submission <- merge(test , train.frame , by = c("Store","Date"))
 submission <- submission[,c("Id","Sales")]
 submission <- arrange(submission, Id)
 
-write.csv(submission,"NaiveLastYear.csv", row.names = FALSE)
+write.csv(submission,"NaiveLastYearMean.csv", row.names = FALSE)
