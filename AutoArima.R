@@ -30,7 +30,7 @@ forecasting.algorithm <- function (train , test , algoname , ...) {
     #if (currentStore == 512){
     #currentStore <- 511
     cat("Running Forecasting for : ", currentStore , "\n")
-    currentData <- filter(train , train$Store == currentStore)
+    currentData <- filter(train , Store == currentStore)
     testData <- filter(test , test$Store == currentStore)
     
     cat("Running for store ", currentStore , " has data with rows ", nrow(currentData))
@@ -39,7 +39,27 @@ forecasting.algorithm <- function (train , test , algoname , ...) {
     salesFcst <- filter(currentData, Date >= '2014-08-02' & Date <= '2014-09-18')
     
     
-    newFcst <- f(currentData, testData , currentStore , s)
+    #newFcst <- f(currentData, testData , currentStore , s)
+    ##################################################################
+    
+    horizon <- 48
+    traindf <- data.frame(as.numeric(currentData$Promo), as.numeric(currentData$Open) , as.numeric(currentData$SchoolHoliday))
+    testdf <- data.frame(as.numeric(testData$Promo),as.numeric(testData$Open), as.numeric(testData$SchoolHoliday))
+    
+    cat(" Horizon inferred ",horizon, 
+        " NA count for traindf ", sum(is.finite(currentData$Sales) ),sum(is.finite(currentData$Promo) ) , sum(is.finite(currentData$Open) ),sum(is.finite(currentData$SchoolHoliday) ) , 
+        " NA count for testdf ", sum(is.finite(testData$Sales)),sum(is.finite(testData$Promo)),sum(is.finite(testData$Open)),sum(is.finite(testData$SchoolHoliday)))
+
+    
+    model <- auto.arima(s,xreg = traindf, ic='bic',seasonal=TRUE , seasonal.test='ch')
+    fc <- predict(model, h=horizon ,newxreg=testdf)
+    
+    
+    newFcst <- data.frame(Store = rep(currentStore,48),
+                          Date = seq(as.Date("2015-08-01"), as.Date("2015-09-17"), "day"),
+                          Sales = exp(fc$pred))
+    
+    ###################################################################
     myfcst <- bind_rows( myfcst, newFcst)
     #}
   }
@@ -69,9 +89,13 @@ Using.auto.arima <- function(currentData, testData, currentStore , s)
 {
   
     horizon <- 48
+    traindf <- data.frame(as.numeric(currentData$Promo), as.numeric(currentData$Open) , as.numeric(currentData$SchoolHoliday))
+    testdf <- data.frame(as.numeric(testData$Promo),as.numeric(testData$Open), as.numeric(testData$SchoolHoliday))
+                          
     cat(" Horizon inferred ",horizon)
-    model <- auto.arima(s,xreg = as.numeric(currentData$Promo) ,seasonal=TRUE)
-    fc <- predict(model, h=horizon , newxreg= as.numeric(testData$Promo))
+    
+    model <- auto.arima(s,xreg = traindf, seasonal=TRUE)
+    fc <- predict(model, h=horizon ,newxreg= testdf , seasonal=TRUE)
     
     
     newFcst <- data.frame(Store = rep(currentStore,48),
