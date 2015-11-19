@@ -50,7 +50,6 @@ forecasting.algorithm <- function (train , test , algoname , ...) {
         " NA count for traindf ", sum(is.finite(currentData$Sales) ),sum(is.finite(currentData$Promo) ) , sum(is.finite(currentData$Open) ),sum(is.finite(currentData$SchoolHoliday) ) , 
         " NA count for testdf ", sum(is.finite(testData$Sales)),sum(is.finite(testData$Promo)),sum(is.finite(testData$Open)),sum(is.finite(testData$SchoolHoliday)))
 
-    
     model <- auto.arima(s,xreg = traindf, ic='bic',seasonal=TRUE , seasonal.test='ch')
     fc <- predict(model, h=horizon ,newxreg=testdf)
     
