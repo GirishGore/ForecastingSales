@@ -16,36 +16,59 @@ test <- merge(test,store)
 train[is.na(train)]   <- 0
 test[is.na(test)]   <- 0
 
-cat("train data column names and details\n")
-names(train)
-str(train)
-summary(train)
-cat("test data column names and details\n")
-names(test)
-str(test)
-summary(test)
-
 # looking at only stores that were open in the train set
 # may change this later
-train <- train[ which(train$Open=='1'),]
+#train <- train[ which(train$Open=='1'),]
 
 # seperating out the elements of the date column for the train set
-train$month <- as.integer(format(train$Date, "%m"))
-train$year <- as.integer(format(train$Date, "%y"))
-train$day <- as.integer(format(train$Date, "%d"))
+train$month <- as.factor(month(as.Date(train$Date)))
+train$year <- as.factor(year(as.Date(train$Date)))
+
+train$Week <- as.factor(week(as.Date(train$Date)))
+train$DayOfWeek <- as.factor(train$DayOfWeek)
+
 
 # removing the date column (since elements are extracted) and also StateHoliday which has a lot of NAs (may add it back in later)
-train <- train[,-c(3,8)]
+#train <- train[,-c(3)]
 
 # seperating out the elements of the date column for the test set
-test$month <- as.integer(format(test$Date, "%m"))
-test$year <- as.integer(format(test$Date, "%y"))
-test$day <- as.integer(format(test$Date, "%d"))
+test$month <- as.factor(month(as.Date(test$Date)))
+test$year <- as.factor(year(as.Date(test$Date)))
+test$Week <- as.factor(week(as.Date(test$Date)))
+test$DayOfWeek <- as.factor(test$DayOfWeek)
 
 # removing the date column (since elements are extracted) and also StateHoliday which has a lot of NAs (may add it back in later)
-test <- test[,-c(4,7)]
+#test <- test[,-c(4)]
 
-feature.names <- names(train)[c(1,2,6,8:12,14:19)]
+names(train)
+names(test)
+str(train)
+str(test)
+head(train)
+head(test)
+summary(train)
+
+
+train$Open <- as.factor(train$Open)
+train$Promo <- as.factor(train$Promo)
+train$Promo2 <- as.factor(train$Promo2)
+train$StateHoliday <- as.factor(train$StateHoliday)
+train$SchoolHoliday <- as.factor(train$SchoolHoliday)
+train$StoreType <- as.factor(train$StoreType)
+train$Assortment <- as.factor(train$Assortment)
+
+test$Open <- as.factor(test$Open)
+test$Promo <- as.factor(test$Promo)
+test$Promo2 <- as.factor(test$Promo2)
+test$StateHoliday <- as.factor(test$StateHoliday)
+test$SchoolHoliday <- as.factor(test$SchoolHoliday)
+test$StoreType <- as.factor(test$StoreType)
+test$Assortment <- as.factor(test$Assortment)
+
+names(train)
+names(test)
+str(train)
+feature.names <- names(train)[c(1,2,6:19,21)]
 cat("Feature Names\n")
 feature.names
 
@@ -151,15 +174,25 @@ for (date in gap) {
   
 }
 
-head(missing_df)
-head(train)
+names(missing_df)
+names(train)
 
-missing_df$Year <- year(missing_df$Date)
-missing_df$Month <- month(missing_df$Date)
+missing_df$year <- year(missing_df$Date)
+missing_df$month <- month(missing_df$Date)
 missing_df$Week <- week(missing_df$Date)
 
+missing_df <- merge(missing_df,store)
 
-head(missing_df)
+missing_df$Open <- as.factor(missing_df$Open)
+missing_df$Promo <- as.factor(missing_df$Promo)
+missing_df$Promo2 <- as.factor(missing_df$Promo2)
+missing_df$StateHoliday <- as.factor(missing_df$StateHoliday)
+missing_df$SchoolHoliday <- as.factor(missing_df$SchoolHoliday)
+missing_df$StoreType <- as.factor(missing_df$StoreType)
+missing_df$Assortment <- as.factor(missing_df$Assortment)
+missing_df$week <- NULL
+
+
 train_filled_gap <- rbind(train,missing_df)
 train_filled_gap <- train_filled_gap[order(train_filled_gap$Date),]
 
@@ -184,12 +217,25 @@ train_filled_gap <- train_filled_gap %>%
 
 train <- train_filled_gap
 
+
+
 head(train)
 train$Sales <- exp(train$logSales)
+##############VALIDITY ###########3
+store13 <- subset(train, Store==13)
+ggplot(store13, aes(Date,Sales)) +
+  geom_line() +
+  geom_smooth() + 
+  ggtitle("Revenue for Store 13 over time")
 
+summary(train)
 ####################################################
+str(train)
 cat("checking all stores are accounted for\n")
 length(unique(train$Store))
+
+train[is.na(train)]   <- 0
+test[is.na(test)]   <- 0
 
 cat("train data column names after slight feature engineering\n")
 names(train)
@@ -215,12 +261,22 @@ names(test)
 #dsample$DayOfWeek <- as.integer(dsample$DayOfWeek)
 #cat("check structire of stratified sample\n")
 #str(dsample)
+summary(train)
+summary(log(train$Sales + 1))
 
-clf <- randomForest(train[,feature.names], 
+head(train)
+
+for (f in feature.names) {
+  
+replace(train$f, is.na(train$f) | is.nan(train$f) | is.infinite(train$f), 0)
+  }
+
+trainclf <- randomForest(train[,feature.names], 
                     log(train$Sales+1),
-                    mtry=5,
-                    ntree=500,
+                    mtry=6,
+                    ntree=1001,
                     sampsize=100000,
+                    importance = TRUE,
                     do.trace=TRUE)
 
 cat("model stats\n")
@@ -245,7 +301,7 @@ pred <- exp(predict(clf, test)) -1
 submission <- data.frame(Id=test$Id, Sales=pred)
 
 cat("saving the submission file\n")
-write_csv(submission, "rf3.csv")
+write_csv(submission, "rf4.csv")
 
 
 
