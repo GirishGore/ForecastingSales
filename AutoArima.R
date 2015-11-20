@@ -1,30 +1,30 @@
 
 
 forecasting.algorithm <- function (train , test , algoname , ...) {
-  
+
   ALGONAMES <- c('Using.auto.arima',
                  'Visualizing.TimeSeries.Decomposition',
                  'Using.furier.series',
                  'Using.Classiscal.Approach');
-  
+
   if(algoname %in% ALGONAMES){
      cat(" This algorithm supported ")
      f <- get(algoname)
   } else {
     stop ( algoname , ' this algorithm not supported ')
   }
-  
+
   forecastStores <- unique(test$Store)
   train.dates <- unique(train$Date)
-  
+
 
   num.train.dates <- length(train.dates)
   cat(" Length of dates to be forecasted" , num.train.dates)
   train.frame <- data.frame(Date =rep(train.dates, length(forecastStores)),
                             Store=rep(forecastStores, each=num.train.dates))
-  
+
   myfcst <- data.frame(matrix(ncol = 3, nrow = 0))
-  
+
   for(currentStore in forecastStores)
   {
     #if (currentStore == 512){
@@ -32,38 +32,38 @@ forecasting.algorithm <- function (train , test , algoname , ...) {
     cat("Running Forecasting for : ", currentStore , "\n")
     currentData <- filter(train , Store == currentStore)
     testData <- filter(test , test$Store == currentStore)
-    
+
     cat("Running for store ", currentStore , " has data with rows ", nrow(currentData))
     s <- ts(currentData$Sales, frequency=365)
-    
+
     salesFcst <- filter(currentData, Date >= '2014-08-02' & Date <= '2014-09-18')
-    
-    
+
+
     #newFcst <- f(currentData, testData , currentStore , s)
     ##################################################################
-    
+
     horizon <- 48
     traindf <- data.frame(as.numeric(currentData$Promo), as.numeric(currentData$Open) , as.numeric(currentData$SchoolHoliday))
     testdf <- data.frame(as.numeric(testData$Promo),as.numeric(testData$Open), as.numeric(testData$SchoolHoliday))
-    
-    cat(" Horizon inferred ",horizon, 
-        " NA count for traindf ", sum(is.finite(currentData$Sales) ),sum(is.finite(currentData$Promo) ) , sum(is.finite(currentData$Open) ),sum(is.finite(currentData$SchoolHoliday) ) , 
+
+    cat(" Horizon inferred ",horizon,
+        " NA count for traindf ", sum(is.finite(currentData$Sales) ),sum(is.finite(currentData$Promo) ) , sum(is.finite(currentData$Open) ),sum(is.finite(currentData$SchoolHoliday) ) ,
         " NA count for testdf ", sum(is.finite(testData$Sales)),sum(is.finite(testData$Promo)),sum(is.finite(testData$Open)),sum(is.finite(testData$SchoolHoliday)))
 
     model <- auto.arima(s,xreg = traindf, ic='bic',seasonal=TRUE , seasonal.test='ch')
     fc <- predict(model, h=horizon ,newxreg=testdf)
-    
-    
+
+
     newFcst <- data.frame(Store = rep(currentStore,48),
                           Date = seq(as.Date("2015-08-01"), as.Date("2015-09-17"), "day"),
                           Sales = exp(fc$pred))
-    
+
     ###################################################################
     myfcst <- bind_rows( myfcst, newFcst)
     #}
   }
-  
-  myfcst   
+
+  myfcst
 }
 
 Visualizing.TimeSeries.Decomposition <- function(currentData, testData, currentStore ,s)
@@ -75,34 +75,38 @@ Visualizing.TimeSeries.Decomposition <- function(currentData, testData, currentS
     lines(fit$time.series[,2],col="red",ylab="Trend")
     plot(fit)
     monthplot(fit$time.series[,"seasonal"], main="", ylab="Seasonal")
-    
+
     plot(s, col="grey",
          main="Electrical equipment manufacturing",
          xlab="", ylab="New orders index")
     lines(seasadj(fit),col="red",ylab="Seasonally adjusted")
-    
+
     NULL
 }
 
 Using.auto.arima <- function(currentData, testData, currentStore , s)
 {
-  
+
     horizon <- 48
-    traindf <- data.frame(as.numeric(currentData$Promo), as.numeric(currentData$Open) , as.numeric(currentData$SchoolHoliday))
-    testdf <- data.frame(as.numeric(testData$Promo),as.numeric(testData$Open), as.numeric(testData$SchoolHoliday))
-                          
+    traindf <- data.frame(as.numeric(currentData$Promo),
+                          as.numeric(currentData$Open) ,
+                          as.numeric(currentData$SchoolHoliday))
+    testdf <- data.frame(as.numeric(testData$Promo),
+                         as.numeric(testData$Open),
+                         as.numeric(testData$SchoolHoliday))
+
     cat(" Horizon inferred ",horizon)
-    
-    model <- auto.arima(s,xreg = traindf, seasonal=TRUE)
-    fc <- predict(model, h=horizon ,newxreg= testdf , seasonal=TRUE)
-    
-    
+
+    model <- auto.arima(s,xreg = traindf, seasonal=FALSE)
+    fc <- predict(model, h=horizon ,newxreg= testdf , seasonal=FALSE)
+
+
     newFcst <- data.frame(Store = rep(currentStore,48),
                          Date = seq(as.Date("2015-08-01"), as.Date("2015-09-17"), "day"),
                          Sales = fc$pred)
-    
+
     newFcst
-    
+
 }
 
 Using.furier.series <- function(currentData, testData, currentStore , s)
@@ -112,34 +116,34 @@ Using.furier.series <- function(currentData, testData, currentStore , s)
   ?window
   s <- window(s ,1,k * horizon)
   cat(" Horizon inferred ",horizon , " length of time sereies s ", length(s))
-  
+
   model <- auto.arima(s,xreg = data.frame(as.numeric(currentData$Promo), fourier(s,K=k)), seasonal = FALSE)
-  
+
   cat(" Finished building a model ")
-  fc <- predict(model, h=horizon , 
+  fc <- predict(model, h=horizon ,
                 newxreg= data.frame(as.numeric(testData$Promo), fourier(testData$Promo,K=k )))
-  
-  
+
+
   newFcst <- data.frame(Store = rep(currentStore,horizon),
                         Date = seq(as.Date("2015-08-01"), as.Date("2015-09-17"), "day"),
                         Sales = fc$pred)
-  
+
   newFcst
-  
+
 }
 
 Using.Classiscal.Approach <- function(currentData, testData , currentStore ,s)
 {
   horizon <- 48
   salesFcst <- filter(currentData, Date >= '2014-08-02' & Date <= '2014-09-18')
-  
+
   if(length(salesFcst) < 48)
   {
-  
+
     newFcst <- data.frame(Store = rep(currentStore,horizon),
                         Date = seq(as.Date("2015-08-01"), as.Date("2015-09-17"), "day"),
                         Sales = rep(mean(currentData$Sales),48))
-    
+
   }
   else
   {
