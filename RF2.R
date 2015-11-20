@@ -28,25 +28,7 @@ train$year <- as.factor(year(as.Date(train$Date)))
 train$Week <- as.factor(week(as.Date(train$Date)))
 train$DayOfWeek <- as.factor(train$DayOfWeek)
 
-names(train)
-weeklysales <- train %>%
-  group_by(Store, Week) %>%
-  summarise(weeklysales = mean(Sales))
 
-weeklysales
-
-train <- merge(train,weeklysales)
-test <- merge(test,weeklysales)
-
-
-DOWcustomers <- train %>%
-  group_by(Store, DayOfWeek) %>%
-  summarise(DOWcustomers = mean(Customers))
-
-DOWcustomers
-
-train <- merge(train,DOWcustomers)
-test <- merge(test,DOWcustomers)
 
 # removing the date column (since elements are extracted) and also StateHoliday which has a lot of NAs (may add it back in later)
 #train <- train[,-c(3)]
@@ -85,21 +67,6 @@ test$SchoolHoliday <- as.factor(test$SchoolHoliday)
 test$StoreType <- as.factor(test$StoreType)
 test$Assortment <- as.factor(test$Assortment)
 
-names(train)
-names(test)
-str(train)
-feature.names <- names(train)[c(1,2,6:19,21,22,23)]
-cat("Feature Names\n")
-feature.names
-
-cat("assuming text variables are categorical & replacing them with numeric ids\n")
-for (f in feature.names) {
-  if (class(train[[f]])=="character") {
-    levels <- unique(c(train[[f]], test[[f]]))
-    train[[f]] <- as.integer(factor(train[[f]], levels=levels))
-    test[[f]]  <- as.integer(factor(test[[f]],  levels=levels))
-  }
-}
 
 ##### PREPROCESSING FOR MISSING VALUES ######
 
@@ -250,6 +217,45 @@ ggplot(store13, aes(Date,Sales)) +
 
 summary(train)
 ####################################################
+names(train)
+weeklysales <- train %>%
+  group_by(Store, Week) %>%
+  summarise(weeklysales = mean(Sales))
+
+weeklysales
+
+train <- merge(train,weeklysales)
+test <- merge(test,weeklysales)
+
+
+DOWcustomers <- train %>%
+  group_by(Store, DayOfWeek) %>%
+  summarise(DOWcustomers = mean(Customers))
+
+DOWcustomers
+
+train <- merge(train,DOWcustomers)
+test <- merge(test,DOWcustomers)
+names(train)
+names(test)
+str(train)
+feature.names <- names(train)[c(1,2,6:19,21,22,23)]
+cat("Feature Names\n")
+feature.names
+
+cat("assuming text variables are categorical & replacing them with numeric ids\n")
+for (f in feature.names) {
+  if (class(train[[f]])=="character") {
+    levels <- unique(c(train[[f]], test[[f]]))
+    train[[f]] <- as.integer(factor(train[[f]], levels=levels))
+    test[[f]]  <- as.integer(factor(test[[f]],  levels=levels))
+  }
+}
+
+
+
+
+
 str(train)
 cat("checking all stores are accounted for\n")
 length(unique(train$Store))
@@ -294,7 +300,7 @@ replace(train$f, is.na(train$f) | is.nan(train$f) | is.infinite(train$f), 0)
 trainclf <- randomForest(train[,feature.names], 
                     log(train$Sales+1),
                     mtry=4,
-                    ntree=1501,
+                    ntree=501,
                     sampsize=100000,
                     importance = TRUE,
                     do.trace=TRUE)
