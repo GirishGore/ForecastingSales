@@ -1,4 +1,5 @@
 setwd("C:\\Users\\Girish.Gore\\Desktop\\RossMan\\ForecastingSales")
+library(gbm)
 library(readr)
 library(randomForest)
 library(lubridate)
@@ -291,14 +292,21 @@ for (f in feature.names) {
 replace(train$f, is.na(train$f) | is.nan(train$f) | is.infinite(train$f), 0)
   }
 
-trainclf <- randomForest(train[,feature.names], 
+trainclf <- gbm.fit(train[,feature.names], 
                     log(train$Sales+1),
-                    mtry=4,
-                    ntree=1501,
-                    sampsize=100000,
-                    importance = TRUE,
-                    do.trace=TRUE)
+                    distribution = "gaussian",
+                    n.trees = 1001,
+                    interaction.depth = 1,
+                    n.minobsinnode = 3,
+                    shrinkage = 0.001,
+                    bag.fraction = 0.5,
+                    keep.data = TRUE,
+                    verbose = TRUE,
+                    var.names = NULL,
+                    response.name = "y",
+                    group = NULL)
 
+summary(trainclf)
 cat("model stats\n")
 clf
 cat("print model\n")
@@ -321,7 +329,7 @@ pred <- exp(predict(clf, test)) -1
 submission <- data.frame(Id=test$Id, Sales=pred)
 
 cat("saving the submission file\n")
-write_csv(submission, "rf5.csv")
+write_csv(submission, "gbm.csv")
 
 
 
