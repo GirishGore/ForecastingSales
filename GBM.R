@@ -285,16 +285,24 @@ names(test)
 summary(train)
 summary(log(train$Sales + 1))
 
-head(train)
-
 for (f in feature.names) {
 
-replace(train$f, is.na(train$f) | is.nan(trainl$f) | is.infinite(train$f), 0)
-  }
+replace(train$f, is.na(train$f) | is.nan(train$f) | is.infinite(train$f), 0)
+}
+
+train <- train[,feature.names]
+test <- test[,feature.names]
 
 save(train , file="train.Rdata")
 save(test , file="test.Rdata")
 
+set.seed(1000)
+library(caTools)
+split = sample.split(train$Store, SplitRatio = 0.75)
+
+# Split up the data using subset
+train = subset(train, split==TRUE)
+train1 = subset(train, split==FALSE)
 
 
 trainclf <- gbm.fit(train[,feature.names],
@@ -311,10 +319,24 @@ trainclf <- gbm.fit(train[,feature.names],
                     response.name = "y",
                     group = NULL)
 
-library(caret)
-myTuneGrid <- expand.grid(n.trees = rep(50:1000,50),interaction.depth = 3:5,shrinkage = c(0.1,0.01) , n.minobsinnode = 10)
+predictTest = predict(trainclf, type="response", newdata=train1 , n.trees = 501)
 
-fitControl <- trainControl(method = "repeatedcv", number = 7,repeats = 1, verboseIter = FALSE,returnResamp = "all")
+  labels <- getinfo(dtrain, "label")
+  elab<-exp(as.numeric(labels))-1
+  epreds<-exp(as.numeric(preds))-1
+  epred<-epreds[elab!=0]
+  elab<-elab[elab!=0]
+  err <- sqrt(mean(((elab-epred)/elab)^2))
+  return(list(metric = "RMPSE", value = err))
+}
+
+
+library(caret)
+myTuneGrid <- expand.grid(n.trees = c(501,601),interaction.depth = 3:5,shrinkage = c(0.1,0.01) , n.minobsinnode = 10)
+
+fitControl <- trainControl(method = "repeatedcv", number = 3,repeats = 1, verboseIter = FALSE,returnResamp = "all")
+
+
 
 myModel <- train(train[,feature.names],
                  log(train$Sales+1),
