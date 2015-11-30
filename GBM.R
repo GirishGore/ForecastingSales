@@ -107,7 +107,7 @@ for (f in feature.names) {
 store13 <- subset(train, Store==13)
 ggplot(store13, aes(Date,Sales)) +
   geom_line() +
-  geom_smooth() + 
+  geom_smooth() +
   ggtitle("Revenue for Store 13 over time")
 
 all_stores <- unique(train$Store)
@@ -120,7 +120,7 @@ for (date in seq(as.Date("2014-7-2"),as.Date("2014-12-31"),by="day")) {
   missing_on_date <- all_stores[!(all_stores %in% stores_reporting)]
   if (length(setdiff(missing_on_date,missing_stores)) > 0) {
     cat("Date:",date," Difference in missing stores",setdiff(missing_on_date,missing_stores))
-  } 
+  }
 }
 
 stores_reporting <- train$Store[train$Date == as.Date("2013-1-1")]
@@ -171,28 +171,28 @@ missing_df <- data.frame(Store = integer(n_missing),
 
 for (date in gap) {
   missing_df$Store[missing_df$Date == date] <- missing_stores
-  
+
   day_of_week <- unique(train$DayOfWeek[train$Date == date])
   missing_df$DayOfWeek[missing_df$Date == date] <- rep(day_of_week, length(missing_stores))
-  
+
   missing_df$Sales[missing_df$Date == date] <- rep(NA, length(missing_stores))
-  
+
   missing_df$Customers[missing_df$Date == date] <- rep(NA, length(missing_stores))
-  
+
   open <- as.numeric(names(which.max(table(train$Open[train$Date == date]))))
   missing_df$Open[missing_df$Date == date] <- rep(open, length(missing_stores))
-  
+
   promo <- as.numeric(names(which.max(table(train$Promo[train$Date == date]))))
   missing_df$Promo[missing_df$Date == date] <- rep(promo, length(missing_stores))
-  
+
   state_holiday <- names(which.max(table(train$StateHoliday[train$Date == date])))
   missing_df$StateHoliday[missing_df$Date == date] <- rep(state_holiday, length(missing_stores))
-  
+
   school_holiday <- as.numeric(names(which.max(table(train$SchoolHoliday[train$Date == date]))))
   missing_df$SchoolHoliday[missing_df$Date == date] <- rep(school_holiday, length(missing_stores))
-  
+
   missing_df$logSales[missing_df$Date == date] <- rep(NA, length(missing_stores))
-  
+
 }
 
 names(missing_df)
@@ -217,22 +217,22 @@ missing_df$week <- NULL
 train_filled_gap <- rbind(train,missing_df)
 train_filled_gap <- train_filled_gap[order(train_filled_gap$Date),]
 
-train_filled_gap <- train_filled_gap %>% 
+train_filled_gap <- train_filled_gap %>%
   group_by(Store, DayOfWeek, Open, Promo) %>%
-  mutate(Sales = as.integer(ifelse(is.na(Sales), 
-                                   ifelse(Open == 0, 
+  mutate(Sales = as.integer(ifelse(is.na(Sales),
+                                   ifelse(Open == 0,
                                           0,
-                                          median(Sales, na.rm=T)), 
+                                          median(Sales, na.rm=T)),
                                    Sales))) %>%
   mutate(Customers = as.integer(ifelse(is.na(Customers),
-                                       ifelse(Open == 0, 
+                                       ifelse(Open == 0,
                                               0,
                                               median(Customers, na.rm=T)),
                                        Customers))) %>%
   mutate(logSales = ifelse(is.na(logSales),
                            ifelse(Open == 0,
                                   0,
-                                  median(logSales, na.rm=T)), 
+                                  median(logSales, na.rm=T)),
                            logSales))
 
 
@@ -246,7 +246,7 @@ train$Sales <- exp(train$logSales)
 store13 <- subset(train, Store==13)
 ggplot(store13, aes(Date,Sales)) +
   geom_line() +
-  geom_smooth() + 
+  geom_smooth() +
   ggtitle("Revenue for Store 13 over time")
 
 summary(train)
@@ -273,7 +273,7 @@ names(test)
 #  dsub <- subset(train, train$DayOfWeek == i)
 #  B = ceiling(nrow(dsub) * p)
 #  dsub <- dsub[sample(1:nrow(dsub), B), ]
-#  dsample <- rbind(dsample, dsub) 
+#  dsample <- rbind(dsample, dsub)
 #  }
 
 #cat("dimensions of stratified sample set with every day of the week included\n")
@@ -288,17 +288,22 @@ summary(log(train$Sales + 1))
 head(train)
 
 for (f in feature.names) {
-  
-replace(train$f, is.na(train$f) | is.nan(train$f) | is.infinite(train$f), 0)
+
+replace(train$f, is.na(train$f) | is.nan(trainl$f) | is.infinite(train$f), 0)
   }
 
-trainclf <- gbm.fit(train[,feature.names], 
+save(train , file="train.Rdata")
+save(test , file="test.Rdata")
+
+
+
+trainclf <- gbm.fit(train[,feature.names],
                     log(train$Sales+1),
                     distribution = "gaussian",
-                    n.trees = 1001,
-                    interaction.depth = 1,
-                    n.minobsinnode = 3,
-                    shrinkage = 0.001,
+                    n.trees = 501,
+                    interaction.depth = 3,
+                    n.minobsinnode = 10,
+                    shrinkage = 0.01,
                     bag.fraction = 0.5,
                     keep.data = TRUE,
                     verbose = TRUE,
@@ -306,7 +311,19 @@ trainclf <- gbm.fit(train[,feature.names],
                     response.name = "y",
                     group = NULL)
 
+library(caret)
+myTuneGrid <- expand.grid(n.trees = rep(50:1000,50),interaction.depth = 3:5,shrinkage = c(0.1,0.01) , n.minobsinnode = 10)
+
+fitControl <- trainControl(method = "repeatedcv", number = 7,repeats = 1, verboseIter = FALSE,returnResamp = "all")
+
+myModel <- train(train[,feature.names],
+                 log(train$Sales+1),
+                 method = "gbm",
+                 trControl = fitControl,
+                 tuneGrid = myTuneGrid)
+
 summary(trainclf)
+clf <- trainclf
 cat("model stats\n")
 clf
 cat("print model\n")
@@ -322,10 +339,14 @@ plot(clf)
 cat("Plot Importance\n")
 plot(importance(clf), lty=2, pch=16)
 
+str(train)
+str(test)
+feature.names
+levels(test$year) <- levels(train$year)
 
 cat("Predicting Sales\n")
-
-pred <- exp(predict(clf, test)) -1
+predSales <- predict(trainclf, test , n.trees = 1001)
+pred <- exp() -1
 submission <- data.frame(Id=test$Id, Sales=pred)
 
 cat("saving the submission file\n")
